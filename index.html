@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<link rel="stylesheet" type="text/css" href="css/index.css" />
+		<script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAVW8rGIe3puhsJiywj0CYn2FcaIinQtQ4"></script>
+		<script type="text/javascript" src="js/jquery.js" charset="utf-8"></script>
+		<script type="text/javascript" src="js/jquery-ui.js" charset="utf-8"></script>
+		
+	</head>
+	<body>
+		<div id="user_area">
+			<div class="user_font">HUMAN</div>
+			<div class="user_icon" where="out" type="user"></div>
+			<div class="user_number show_number">0</div>
+		</div>
+		<div id="taxi_area">
+			<div class="taxi_font">TAXI</div>
+			<div class="taxi_icon" where="out" type="taxi"></div>
+			<div class="taxi_number show_number">0</div>
+		</div>
+		<div id="center_area">
+			<div id="center_point"></div>
+		</div>
+		<div id="map-canvas"></div>
+	</body>
+	<script type="text/javascript">
+			var user_layer = 0;
+			var taxi_layer = 0;
+			var human_count = 0;
+			var taxi_count = 0;
+			function initialize() {
+				var mapOptions = {
+					center: { lat: 25.033000, lng: 121.562900},
+					zoom: 18
+				};
+				var map = new google.maps.Map(
+					document.getElementById('map-canvas'),
+					mapOptions);
+			}
+			google.maps.event.addDomListener(window, 'load', initialize);
+			
+			
+/*$(".user_icon[drapever*='y']").length*/
+			//user_drap
+			$('.user_icon').draggable({
+				drag: function( event, ui ) {
+					if($(this).attr("drapever") != "y"){
+						$(this).attr("drapever","y");
+						$("#user_area").append('<div class="user_icon ui-draggable ui-draggable-handle" where="out" type="user" style="position: absolute;left:128px;"></div>');
+						refresh_user_icon_drag();
+					}
+				}
+			});
+			function refresh_user_icon_drag(){
+				$(".user_icon").draggable({
+				  drag: function( event, ui ) {
+					if($(this).attr("drapever") != "y"){;
+						$(this).attr("drapever","y");
+						$("#user_area").append('<div class="user_icon ui-draggable ui-draggable-handle" where="out" type="user" style="position: absolute;left:128px;"></div>');
+						refresh_user_icon_drag()
+					}
+				  }
+				});
+			}
+			//car_drap
+			$('.taxi_icon').draggable({
+			  drag: function( event, ui ) {
+				if($(this).attr("drapever") != "y"){
+					$(this).attr("drapever","y");
+					$("#taxi_area").append('<div class="taxi_icon ui-draggable ui-draggable-handle" where="out" type="taxi" style="position: absolute;left:140px;"></div>');
+					refresh_taxi_icon_drag();
+				}
+			  }
+			});
+			function refresh_taxi_icon_drag(){
+				$(".taxi_icon").draggable({
+				  drag: function( event, ui ) {
+					if($(this).attr("drapever") != "y"){;
+						$(this).attr("drapever","y");
+						$("#taxi_area").append('<div class="taxi_icon ui-draggable ui-draggable-handle" where="out" type="taxi" style="position: absolute;left:140px;"></div>');
+						refresh_taxi_icon_drag()
+					}
+				  }
+				});
+			}
+			$( "#center_point" ).droppable({
+			  drop: function( event, ui ) {
+				if($(ui.draggable[0]).attr("type") == "user"){
+					user_layer++;
+				}
+				if($(ui.draggable[0]).attr("type") == "taxi"){
+					taxi_layer++;
+				}
+			  }
+			});
+			$( "#map-canvas" ).droppable({
+			  drop: function( event, ui ) {
+				/*console.log($(ui.draggable[0]).attr("where"));
+				console.log("taxi_layer:"+taxi_layer);*/
+				//人從裡面拉到外面
+				if($(ui.draggable[0]).attr("where") == "in" && user_layer == 0 && $(ui.draggable[0]).attr("type") == "user"){
+					human_count = human_count-100;
+					$(ui.draggable[0]).attr("where","out");
+					insertPeopletoDB(human_count);
+				}
+				//人從外面拉到裡面
+				if($(ui.draggable[0]).attr("where") == "out" && user_layer == 1 && $(ui.draggable[0]).attr("type") == "user"){
+					human_count = human_count+100;
+					$(ui.draggable[0]).attr("where","in");
+					insertPeopletoDB(human_count);
+				}
+				$(".user_number").html(human_count);
+				//車從裡面拉到外面
+				if($(ui.draggable[0]).attr("where") == "in" && taxi_layer == 0 && $(ui.draggable[0]).attr("type") == "taxi"){
+					taxi_count = taxi_count-1;
+					$(ui.draggable[0]).attr("where","out");
+				}
+				//車從外面拉到裡面
+				if($(ui.draggable[0]).attr("where") == "out" && taxi_layer == 1 && $(ui.draggable[0]).attr("type") == "taxi"){
+					taxi_count = taxi_count+1;
+					$(ui.draggable[0]).attr("where","in");
+				}
+				$(".taxi_number").html(taxi_count);
+				user_layer = 0;
+				taxi_layer = 0;
+				/*console.log("taxi_layer:"+taxi_layer);
+				console.log("bbbb");
+				console.log($(ui));
+				console.log($(this));*/
+			  }
+			});
+			var myVar = setInterval(function(){ myTimer() }, 5000);
+			function myTimer() {
+				if(parseInt(taxi_count)*50 < human_count && parseInt(taxi_count) > 0){
+					console.log("載客");
+					$(".user_icon[where*='in']")[0].remove();
+					$(".taxi_icon[where*='in']")[0].remove();
+					taxi_count = taxi_count-1;
+					human_count = human_count-100;
+					
+					$(".user_number").html(human_count);
+					$(".taxi_number").html(taxi_count);
+					insertPeopletoDB(human_count);
+				}else{
+					console.log("不載客");
+				}
+			}
+			function insertPeopletoDB(people){
+				$.ajax({
+					url: 'http://172.17.183.84:8086/write?db=example',
+					data: 'people,type=people value='+people,
+					type:"POST",
+					success: function(msg){
+						console.log("sucess insert people"+people);
+					},
+					error:function(xhr, ajaxOptions, thrownError){ 
+						console.log("fail insert people"+people);
+					}
+				});
+			}
+			$.ajax({
+					url: 'http://172.17.18.3:8774/v2/0ae93f0f8e9f480c8ee6ee0fd66ce2f8/servers?status=ACTIVE',
+					type:"GET",
+                    headers: { "X-Auth-Token": "549a95ee46394c4eb93b8f2d2f475b07","Content-Type":"application/json" }
+					success: function(data){
+						console.log(data);
+					},
+					error:function(xhr, ajaxOptions, thrownError){ 
+						console.log("fail insert people");
+					}
+				});
+		</script>
+</html>
